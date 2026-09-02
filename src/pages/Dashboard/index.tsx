@@ -7,13 +7,14 @@ import {
   LockIcon,
   LogOutIcon,
   MoonStarIcon,
+  RefreshCwIcon,
   ScaleIcon,
   ShieldCheckIcon,
   TriangleAlertIcon,
   UserPlusIcon,
   UsersIcon,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -456,6 +457,8 @@ function AttendanceRecordCard({
 }
 
 /** Dashboard interaktif: KPI beranimasi, grafik periodik, umpan aktivitas. */
+const REFRESH_INTERVAL_MS = 30_000
+
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const permissionsQuery = usePermissions()
@@ -463,6 +466,18 @@ export function DashboardPage() {
   const { todayRecord, openRecord, isPending, error: clockError, clockOut } = useClock()
   const [period, setPeriod] = useState<Period>("7 Hari")
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
+  const queryClient = useQueryClient()
+  const attendanceData = useAttendanceData(selectedDate)
+
+  const refreshData = useCallback(() => {
+    const dateParam = toDateString(selectedDate)
+    queryClient.invalidateQueries({ queryKey: ["attendance", "date", dateParam] })
+  }, [queryClient, selectedDate])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(refreshData, REFRESH_INTERVAL_MS)
+    return () => window.clearInterval(intervalId)
+  }, [refreshData])
 
   const series = SERIES[period]
   const kpis = KPI_PER_PERIOD[period]
@@ -499,17 +514,33 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="w-full sm:w-56">
-              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-                Tanggal
-              </label>
-              <DatePicker
-                value={selectedDate}
-                onValueChange={(date) => {
-                  if (date) setSelectedDate(date)
-                }}
-                max={new Date()}
-              />
+            <div className="flex w-full items-end gap-2 sm:w-72">
+              <div className="flex-1">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+                  Tanggal
+                </label>
+                <DatePicker
+                  value={selectedDate}
+                  onValueChange={(date) => {
+                    if (date) setSelectedDate(date)
+                  }}
+                  max={new Date()}
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={refreshData}
+                disabled={attendanceData.isLoading}
+                aria-label="Refresh data"
+              >
+                {attendanceData.isLoading ? (
+                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCwIcon className="size-4" aria-hidden />
+                )}
+              </Button>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="flex items-center gap-1.5 rounded-full border border-chart-2/30 bg-chart-2/10 px-3 py-1 text-[11px] font-medium text-chart-2">
