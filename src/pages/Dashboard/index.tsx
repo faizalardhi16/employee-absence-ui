@@ -40,6 +40,7 @@ import { useAuthStore } from "@/stores/auth.store"
 import { toApiError } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
 import { getTodayRecord, clockIn as apiClockIn, autoCloseRecord } from "@/lib/api"
+import { toWibDisplay } from "@/lib/time"
 import type { AttendanceRecord, EmployeeAttendanceRecord } from "@/types/attendance"
 
 type Period = "Hari Ini" | "7 Hari" | "30 Hari"
@@ -483,22 +484,32 @@ function AttendanceRecordCard({
       <CardContent className="grid gap-3">
         {isPending ? (
           <Skeleton className="h-16 w-full" />
-        ) : !record ? (
+        ) : !record || record.clockIn === null ? (
           <p className="text-sm text-muted-foreground">
             Belum ada catatan kehadiran untuk hari ini.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoBox label="Clock In (WIB)" value={formatWibTime(record.clockIn)} />
-            {isClosed ? (
-              <InfoBox
-                label="Clock Out — Selesai (WIB)"
-                value={formatWibTime(record.clockOut)}
-              />
-            ) : (
-              <InfoBox label="Status" value="Sedang berlangsung" />
-            )}
-          </div>
+          <>
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-sm border border-chart-2/30 bg-chart-2/10 px-3 py-2 text-sm font-medium text-chart-2"
+            >
+              <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span className="break-words tabular-nums">
+                Clocked in at: {toWibDisplay(record.clockIn)}
+              </span>
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {isClosed ? (
+                <InfoBox
+                  label="Clock Out — Selesai (WIB)"
+                  value={toWibDisplay(record.clockOut ?? record.clockIn)}
+                />
+              ) : (
+                <InfoBox label="Status" value="Sedang berlangsung" />
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

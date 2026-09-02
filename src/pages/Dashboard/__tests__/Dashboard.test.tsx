@@ -28,6 +28,14 @@ vi.mock("@/features/auth/auth.api", () => ({
   },
 }))
 
+vi.mock("@/lib/api", () => ({
+  getTodayRecord: vi.fn(),
+  clockIn: vi.fn(),
+  autoCloseRecord: vi.fn(),
+}))
+
+import { getTodayRecord, clockIn as apiClockIn, autoCloseRecord } from "@/lib/api"
+
 const mockedAttendanceApi = vi.mocked(attendanceApi)
 const mockedAuthApi = vi.mocked(authApi)
 
@@ -184,5 +192,70 @@ describe("DashboardPage - Auto-refresh and Manual Refresh", () => {
     const allCallsAfterManual = mockedAttendanceApi.getByDate.mock.calls
     expect(allCallsAfterManual.length).toBeGreaterThan(callCountBeforeManual)
     expect(allCallsAfterManual.every((call) => call[0] === expectedDate)).toBe(true)
+  })
+})
+
+describe("DashboardPage - Clock-in confirmation in WIB", () => {
+  beforeEach(() => {
+    setupAuthStore()
+    mockedAttendanceApi.getToday.mockResolvedValue([])
+    mockedAttendanceApi.getByDate.mockResolvedValue([])
+    mockedAuthApi.permissions.mockResolvedValue([])
+    vi.mocked(getTodayRecord).mockResolvedValue([])
+    vi.mocked(autoCloseRecord).mockResolvedValue({
+      id: "0",
+      userId: 1,
+      date: "2026-01-15",
+      clockIn: "2026-01-15T01:30:00Z",
+      clockOut: "2026-01-15T09:00:00Z",
+    })
+    vi.mocked(apiClockIn).mockResolvedValue({
+      id: "9",
+      userId: 1,
+      date: "2026-01-15",
+      clockIn: "2026-01-15T01:30:00Z",
+      clockOut: null,
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    useAuthStore.getState().clearUser()
+  })
+
+  it("shows the recorded clock-in timestamp in WIB after a successful clock-in", async () => {
+    const user = userEvent.setup()
+
+    render(<DashboardPage />, { wrapper: createWrapper() })
+
+    const clockInButton = screen.getByRole("button", { name: /clock in/i })
+    await waitFor(() => expect(clockInButton).toBeEnabled())
+
+    await act(async () => {
+      await user.click(clockInButton)
+    })
+
+    expect(
+      await screen.findByText(/Clocked in at: 2026-01-15 08:30:00 WIB/),
+    ).toBeInTheDocument()
+    expect(apiClockIn).toHaveBeenCalled()
+  })
+
+  it("uses the WIB helper from src/lib/time for the clock-in display", async () => {
+    const user = userEvent.setup()
+
+    render(<DashboardPage />, { wrapper: createWrapper() })
+
+    const clockInButton = screen.getByRole("button", { name: /clock in/i })
+    await waitFor(() => expect(clockInButton).toBeEnabled())
+
+    await act(async () => {
+      await user.click(clockInButton)
+    })
+
+    expect(
+      await screen.findByText(/Clocked in at: 2026-01-15 08:30:00 WIB/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/08:30:00 WIB/)).toBeInTheDocument()
   })
 })
