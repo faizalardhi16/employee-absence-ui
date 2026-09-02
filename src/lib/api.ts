@@ -146,3 +146,29 @@ function logCompleted(config: TimedConfig | undefined, status: number): void {
     duration_ms: durationMs,
   })
 }
+
+export interface AttendanceRecord {
+  id: string
+  userId: number
+  date: string
+  clockIn: string | null
+  clockOut: string | null
+}
+
+export async function getTodayRecord(): Promise<AttendanceRecord[]> {
+  const { data } = await api.get<AttendanceRecord[]>("/attendance/today")
+  return data
+}
+
+export async function clockIn(): Promise<AttendanceRecord> {
+  const { data } = await api.post<AttendanceRecord>("/attendance/clock-in")
+  return data
+}
+
+export async function autoCloseRecord(recordId: string, clockOutTime: string): Promise<AttendanceRecord> {
+  const { data } = await api.patch<AttendanceRecord>(
+    `/attendance/${recordId}/auto-close`,
+    { clockOut: clockOutTime },
+  )
+  return data
+}
