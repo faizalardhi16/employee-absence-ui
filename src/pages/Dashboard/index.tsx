@@ -406,7 +406,7 @@ export function DashboardPage() {
                 type="button"
                 size="sm"
                 variant={openRecord ? "default" : "outline"}
-                disabled={isPending}
+                disabled={isPending || !openRecord}
                 onClick={clockOut}
               >
                 {isPending ? (
