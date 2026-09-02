@@ -1,10 +1,17 @@
 import { AxiosError } from "axios"
 
-/** Bentuk body error standar dari NestJS backend (AllExceptionsFilter). */
+/**
+ * Satu-satunya bentuk payload error yang boleh sampai ke UI.
+ * Hanya berisi field yang aman bagi user:
+ * - `statusCode`: status HTTP (mis. 400, 404, 500)
+ * - `message`: pesan tunggal / daftar pesan yang ramah user
+ *
+ * Field internal backend (mis. `error`, `trace`, `stack`, detail debug)
+ * sengaja TIDAK dibaca agar stack trace / kode internal tidak bocor.
+ */
 export interface ApiErrorPayload {
   statusCode: number
   message: string | string[]
-  error?: string
 }
 
 const FALLBACK_STATUS = 500
@@ -24,12 +31,31 @@ export class ApiError extends Error {
     super(message)
     this.name = "ApiError"
     this.statusCode = statusCode
+    // Hapus stack trace internal (path file, nomor baris) supaya tidak pernah
+    // bocor ke lapisan UI/logger. Property non-enumerable: tak ikut terserialisasi.
+    Object.defineProperty(this, "stack", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    })
   }
 }
 
+/**
+ * Normalisasi teks pesan: runtuhkan baris baru agar stack trace / multi-line
+ * internal tidak bisa diselundupkan ke dalam satu pesan UI. Kembalikan string
+ * bersih, atau undefined bila tidak ada teks yang aman.
+ */
+function sanitizeMessage(value: unknown): string {
+  const text = typeof value === "string" ? value : String(value ?? "")
+  return text.replace(/[\r\n]+/g, " ").trim()
+}
+
 function flattenMessage(message: string | string[] | undefined): string | undefined {
-  if (Array.isArray(message)) return message.join(", ")
-  return message
+  if (message === undefined || message === null) return undefined
+  const parts = Array.isArray(message) ? message : [message]
+  const cleaned = parts.map(sanitizeMessage).filter((part) => part.length > 0)
+  return cleaned.length > 0 ? cleaned.join(", ") : undefined
 }
 
 export function toApiError(candidate: unknown): ApiError {
@@ -45,7 +71,7 @@ export function toApiError(candidate: unknown): ApiError {
     if (candidate.response) {
       const payload = candidate.response.data as Partial<ApiErrorPayload> | undefined
       const message =
-        flattenMessage(payload?.message) ?? candidate.message ?? FALLBACK_MESSAGE
+        flattenMessage(payload?.message) ?? flattenMessage(candidate.message) ?? FALLBACK_MESSAGE
       return new ApiError(payload?.statusCode ?? candidate.response.status, message)
     }
     // Request terkirim tapi tidak ada respons (server mati / jaringan).
@@ -53,7 +79,8 @@ export function toApiError(candidate: unknown): ApiError {
   }
 
   if (candidate instanceof Error) {
-    return new ApiError(FALLBACK_STATUS, candidate.message)
+    const message = flattenMessage(candidate.message) ?? FALLBACK_MESSAGE
+    return new ApiError(FALLBACK_STATUS, message)
   }
 
   return new ApiError(FALLBACK_STATUS, FALLBACK_MESSAGE)

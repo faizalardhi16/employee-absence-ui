@@ -81,4 +81,47 @@ describe("toApiError", () => {
     expect(result.statusCode).toBe(500)
     expect(result.message).toBe("Terjadi kesalahan yang tidak terduga. Coba lagi nanti.")
   })
+
+  it("strips the internal stack trace from ApiError instances", () => {
+    const err = new ApiError(500, "boom")
+    expect(err.stack).toBeUndefined()
+    const serialized = JSON.stringify(err)
+    expect(serialized).not.toContain("at ")
+    expect(serialized).not.toContain("stack")
+    expect(serialized).toBe(JSON.stringify({ statusCode: 500, name: "ApiError" }))
+  })
+
+  it("collapses multi-line messages so stack traces cannot smuggle into the UI", () => {
+    const multiline = new Error("boom\n    at file.ts:12\n    at other.ts:34")
+    const result = toApiError(multiline)
+
+    expect(result.message).toBe("boom     at file.ts:12     at other.ts:34")
+    expect(result.message).not.toMatch(/\n/)
+  })
+
+  it("ignores internal server fields (stack, error, debug) when building the UI message", () => {
+    const axiosError = new AxiosError(
+      "Request failed with status code 500",
+      "ERR_BAD_RESPONSE",
+      undefined,
+      undefined,
+      {
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: {},
+        config: {} as never,
+        data: {
+          statusCode: 500,
+          message: "Terjadi kesalahan",
+          error: "Internal Server Error",
+          stack: "Error: Terjadi kesalahan\n    at app.controller.ts:10",
+        },
+      },
+    )
+
+    const result = toApiError(axiosError)
+    expect(result.message).toBe("Terjadi kesalahan")
+    expect(result.message).not.toContain("app.controller.ts")
+    expect(result.message).not.toMatch(/\n/)
+  })
 })
