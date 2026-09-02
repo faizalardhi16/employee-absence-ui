@@ -36,7 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuthStore } from "@/stores/auth.store"
 import { toApiError } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
-import type { AttendanceRecord } from "@/types/attendance"
+import type { AttendanceRecord, EmployeeAttendanceRecord } from "@/types/attendance"
 
 type Period = "Hari Ini" | "7 Hari" | "30 Hari"
 
@@ -368,6 +368,44 @@ function formatWibTime(iso: string | null): string {
     second: "2-digit",
     hourCycle: "h23",
   }).format(date)
+}
+
+/** Normalisasi tanggal (string atau Date) menjadi YYYY-MM-DD untuk parameter API. */
+function toDateString(date: string | Date): string {
+  if (date instanceof Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+  return date
+}
+
+/**
+ * Ambil catatan Clock In/Clock Out seluruh karyawan pada tanggal tertentu dan
+ * format seluruh timestamp ke zona waktu Asia/Jakarta (WIB) via Intl.DateTimeFormat.
+ * Loading & error state dikelola oleh React Query.
+ */
+export function useAttendanceData(date: string | Date) {
+  const dateParam = toDateString(date)
+
+  const query = useQuery({
+    queryKey: ["attendance", "date", dateParam],
+    queryFn: () => attendanceApi.getByDate(dateParam),
+  })
+
+  const data: EmployeeAttendanceRecord[] = (query.data ?? []).map((record) => ({
+    ...record,
+    clockIn: formatWibTime(record.clockIn),
+    clockOut: formatWibTime(record.clockOut),
+  }))
+
+  return {
+    data,
+    isLoading: query.isPending,
+    isError: query.isError,
+    error: query.error ? toApiError(query.error).message : null,
+  }
 }
 
 /** Ringkasan catatan kehadiran hari ini; menampilkan waktu selesai (clock out) dalam WIB. */
