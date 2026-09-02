@@ -1,17 +1,19 @@
+import { AxiosError } from "axios"
 import { describe, expect, it, vi, afterEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { createMemoryRouter, RouterProvider } from "react-router-dom"
 
 import { RouteErrorPage } from "../index"
 
-const ERROR_TITLE = "Terjadi kesalahan yang tidak terduga"
+const FALLBACK_MESSAGE = "Terjadi kesalahan yang tidak terduga. Coba lagi nanti."
+const NETWORK_MESSAGE = "Tidak dapat terhubung ke server. Periksa koneksi Anda."
 
-function BoomingRoute() {
-  throw new Error("Boom")
-  return null
-}
+function createThrowingRouter(boom: unknown) {
+  function BoomingRoute() {
+    throw boom
+    return null
+  }
 
-function createThrowingRouter() {
   return createMemoryRouter(
     [
       {
@@ -29,18 +31,36 @@ afterEach(() => {
 })
 
 describe("RouteErrorPage", () => {
-  it("renders the friendly error title when a route fails", () => {
-    render(<RouterProvider router={createThrowingRouter()} />)
+  it("renders the error boundary when a route fails", () => {
+    render(<RouterProvider router={createThrowingRouter("boom")} />)
 
     expect(
-      screen.getByRole("heading", { name: ERROR_TITLE }),
+      screen.getByRole("heading", { name: FALLBACK_MESSAGE }),
+    ).toBeInTheDocument()
+  })
+
+  it("uses the fallback message for unrecognized errors", () => {
+    render(<RouterProvider router={createThrowingRouter("not-an-error")} />)
+
+    expect(
+      screen.getByRole("heading", { name: FALLBACK_MESSAGE }),
+    ).toBeInTheDocument()
+  })
+
+  it("uses the network message for connectivity failures", () => {
+    const networkError = new AxiosError("Network Error", "ECONNREFUSED")
+
+    render(<RouterProvider router={createThrowingRouter(networkError)} />)
+
+    expect(
+      screen.getByRole("heading", { name: NETWORK_MESSAGE }),
     ).toBeInTheDocument()
   })
 
   it("does not expose stack traces or raw error details", () => {
-    render(<RouterProvider router={createThrowingRouter()} />)
+    render(<RouterProvider router={createThrowingRouter("boom-detail")} />)
 
-    expect(screen.queryByText(/Boom/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/boom-detail/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Error:/)).not.toBeInTheDocument()
     expect(screen.queryByText(/RouteError\/index\.tsx/)).not.toBeInTheDocument()
   })
