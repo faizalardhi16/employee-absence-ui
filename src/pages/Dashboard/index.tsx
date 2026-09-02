@@ -3,7 +3,9 @@ import {
   FileCheck2Icon,
   FileTextIcon,
   GaugeIcon,
+  Loader2Icon,
   LockIcon,
+  LogOutIcon,
   MoonStarIcon,
   ScaleIcon,
   ShieldCheckIcon,
@@ -12,6 +14,8 @@ import {
   UsersIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 import { ActivityFeed } from "./components/activity-feed"
 import type { ActivityItem } from "./components/activity-feed"
@@ -24,11 +28,15 @@ import { InfoBox, SessionStatus } from "./components/info-box"
 import { DataTable } from "@/components/data/data-table"
 import type { DataColumn } from "@/components/data/data-table"
 import { usePermissions } from "@/features/auth/use-auth"
+import { attendanceApi } from "@/features/attendance/attendance.api"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuthStore } from "@/stores/auth.store"
+import { toApiError } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
+import type { AttendanceRecord } from "@/types/attendance"
 
 type Period = "Hari Ini" | "7 Hari" | "30 Hari"
 
@@ -235,13 +243,98 @@ const REPORT_COLUMNS: DataColumn<RecentReport>[] = [
 
 // ---------- Helpers UI ----------
 
-function useClock() {
+function useCurrentTime() {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(timer)
   }, [])
   return now
+}
+
+// ---------- Clock out (attendance) ----------
+
+const ATTENDANCE_QUERY_KEY = ["attendance", "today"] as const
+
+const NO_OPEN_RECORD_MESSAGE =
+  "Belum ada catatan kehadiran yang sedang terbuka untuk hari ini. Clock out dibatalkan."
+const TOAST_CLOCK_OUT_SUCCESS = "Clock out berhasil. Sampai jumpa!"
+
+/** Record kehadiran hari ini yang masih terbuka (sudah clock in, belum clock out). */
+function findOpenRecord(records: AttendanceRecord[]): AttendanceRecord | null {
+  return (
+    records.find((record) => record.clockIn !== null && record.clockOut === null) ??
+    null
+  )
+}
+
+/**
+ * Hook clock out: validasi dulu apakah ada record kehadiran terbuka untuk hari
+ * ini. Bila tidak ada, aksi ditolak (toast + error). Bila ada, tutup record
+ * via API. Loading & error dikelola lewat state react-query.
+ */
+function useClock() {
+  const queryClient = useQueryClient()
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  const todayQuery = useQuery({
+    queryKey: ATTENDANCE_QUERY_KEY,
+    queryFn: () => attendanceApi.getToday(),
+  })
+
+  const records = todayQuery.data ?? []
+  const openRecord = findOpenRecord(records)
+
+  /** Record yang ditampilkan: record terbuka bila ada, jika tidak yang terakhir. */
+  const todayRecord =
+    openRecord ?? (records.length > 0 ? records[records.length - 1] : null)
+
+  const clockOutMutation = useMutation({
+    mutationFn: (recordId: string) => attendanceApi.clockOut(recordId),
+    onSuccess: (closedRecord) => {
+      queryClient.setQueryData<AttendanceRecord[]>(
+        ATTENDANCE_QUERY_KEY,
+        (current = []) =>
+          current.map((record) =>
+            record.id === closedRecord.id ? closedRecord : record,
+          ),
+      )
+      setValidationError(null)
+      toast.success(TOAST_CLOCK_OUT_SUCCESS)
+    },
+    onError: (error) => {
+      const message = toApiError(error).message
+      setValidationError(message)
+      toast.error(message)
+    },
+  })
+
+  const clockOut = () => {
+    setValidationError(null)
+
+    if (!openRecord) {
+      setValidationError(NO_OPEN_RECORD_MESSAGE)
+      toast.error(NO_OPEN_RECORD_MESSAGE)
+      return false
+    }
+
+    clockOutMutation.mutate(openRecord.id)
+    return true
+  }
+
+  const isLoading = todayQuery.isPending
+  const isClockOutPending = clockOutMutation.isPending
+  const loadError = todayQuery.error ? toApiError(todayQuery.error).message : null
+
+  return {
+    todayRecord,
+    openRecord,
+    isLoading,
+    isClockOutPending,
+    isPending: isLoading || isClockOutPending,
+    error: loadError ?? validationError,
+    clockOut,
+  }
 }
 
 function greetingFor(hour: number): string {
@@ -261,11 +354,74 @@ function displayName(email: string | undefined): string {
     .join(" ")
 }
 
+// ---------- Catatan kehadiran (waktu selesai dalam WIB) ----------
+
+/** Format timestamp UTC menjadi HH:mm:ss di zona waktu Asia/Jakarta (WIB, UTC+7). */
+function formatWibTime(iso: string | null): string {
+  if (!iso) return "-"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "-"
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).format(date)
+}
+
+/** Ringkasan catatan kehadiran hari ini; menampilkan waktu selesai (clock out) dalam WIB. */
+function AttendanceRecordCard({
+  record,
+  isPending,
+}: {
+  record: AttendanceRecord | null
+  isPending: boolean
+}) {
+  const isClosed = record !== null && record.clockOut !== null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ShieldCheckIcon className="size-4 text-primary" aria-hidden />
+          Catatan Kehadiran Hari Ini
+        </CardTitle>
+        <CardDescription>
+          Waktu clock in & clock out dikonversi ke zona waktu Asia/Jakarta (WIB).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {isPending ? (
+          <Skeleton className="h-16 w-full" />
+        ) : !record ? (
+          <p className="text-sm text-muted-foreground">
+            Belum ada catatan kehadiran untuk hari ini.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoBox label="Clock In (WIB)" value={formatWibTime(record.clockIn)} />
+            {isClosed ? (
+              <InfoBox
+                label="Clock Out — Selesai (WIB)"
+                value={formatWibTime(record.clockOut)}
+              />
+            ) : (
+              <InfoBox label="Status" value="Sedang berlangsung" />
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 /** Dashboard interaktif: KPI beranimasi, grafik periodik, umpan aktivitas. */
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const permissionsQuery = usePermissions()
-  const now = useClock()
+  const now = useCurrentTime()
+  const { todayRecord, openRecord, isPending, error: clockError, clockOut } = useClock()
   const [period, setPeriod] = useState<Period>("7 Hari")
 
   const series = SERIES[period]
@@ -302,20 +458,44 @@ export function DashboardPage() {
               </time>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full border border-chart-2/30 bg-chart-2/10 px-3 py-1 text-[11px] font-medium text-chart-2">
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-2 opacity-60" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-chart-2" />
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="flex items-center gap-1.5 rounded-full border border-chart-2/30 bg-chart-2/10 px-3 py-1 text-[11px] font-medium text-chart-2">
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-2 opacity-60" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-chart-2" />
+                </span>
+                Live
               </span>
-              Live
-            </span>
-            <span className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
-              API · 42 ms
-            </span>
+              <span className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
+                API · 42 ms
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant={openRecord ? "default" : "outline"}
+                disabled={isPending || !openRecord}
+                onClick={clockOut}
+              >
+                {isPending ? (
+                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <LogOutIcon className="size-4" aria-hidden />
+                )}
+                Clock Out
+              </Button>
+            </div>
+            {clockError ? (
+              <p role="alert" className="max-w-xs text-right text-xs text-destructive">
+                {clockError}
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
+
+      {/* Catatan kehadiran hari ini (waktu selesai dalam WIB) */}
+      <AttendanceRecordCard record={todayRecord} isPending={isPending} />
 
       {/* Pemilih periode + KPI */}
       <div className="flex flex-wrap items-center justify-between gap-3">
