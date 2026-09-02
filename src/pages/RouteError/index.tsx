@@ -2,7 +2,7 @@ import { RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouteError } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
-import { toApiError } from "@/lib/api-error"
+import { ERROR_TITLE, toApiError } from "@/lib/api-error"
 import { logger } from "@/lib/logger"
 
 /**
@@ -23,9 +23,9 @@ export function RouteErrorPage() {
       <div className="flex size-12 items-center justify-center rounded-sm bg-destructive/10">
         <TriangleAlertIcon className="size-6 text-destructive" aria-hidden />
       </div>
-      <h1 className="text-xl font-semibold">{apiError.message}</h1>
+      <h1 className="text-xl font-semibold">{ERROR_TITLE}</h1>
       <p className="max-w-md text-sm text-muted-foreground">
-        Halaman gagal dirender. Coba muat ulang; jika berlanjut, periksa console untuk detail
+        {apiError.message}. Coba muat ulang; jika berlanjut, periksa console untuk detail
         teknis.
       </p>
       <Button onClick={() => window.location.reload()} variant="outline">

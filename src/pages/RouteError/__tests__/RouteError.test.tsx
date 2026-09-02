@@ -1,12 +1,14 @@
 import { AxiosError } from "axios"
 import { describe, expect, it, vi, afterEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, cleanup } from "@testing-library/react"
 import { createMemoryRouter, RouterProvider } from "react-router-dom"
 
 import { RouteErrorPage } from "../index"
+import { ERROR_TITLE } from "@/lib/api-error"
 
 const FALLBACK_MESSAGE = "Terjadi kesalahan yang tidak terduga. Coba lagi nanti."
 const NETWORK_MESSAGE = "Tidak dapat terhubung ke server. Periksa koneksi Anda."
+const TIMEOUT_MESSAGE = "Permintaan melebihi batas waktu. Silakan coba lagi."
 
 function createThrowingRouter(boom: unknown) {
   function BoomingRoute() {
@@ -27,15 +29,19 @@ function createThrowingRouter(boom: unknown) {
 }
 
 afterEach(() => {
+  cleanup()
   vi.restoreAllMocks()
 })
 
 describe("RouteErrorPage", () => {
-  it("renders the error boundary when a route fails", () => {
+  it("renders the error title when a route fails", () => {
     render(<RouterProvider router={createThrowingRouter("boom")} />)
 
     expect(
-      screen.getByRole("heading", { name: FALLBACK_MESSAGE }),
+      screen.getByRole("heading", { name: ERROR_TITLE }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(FALLBACK_MESSAGE)),
     ).toBeInTheDocument()
   })
 
@@ -43,7 +49,10 @@ describe("RouteErrorPage", () => {
     render(<RouterProvider router={createThrowingRouter("not-an-error")} />)
 
     expect(
-      screen.getByRole("heading", { name: FALLBACK_MESSAGE }),
+      screen.getByRole("heading", { name: ERROR_TITLE }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(FALLBACK_MESSAGE)),
     ).toBeInTheDocument()
   })
 
@@ -53,7 +62,50 @@ describe("RouteErrorPage", () => {
     render(<RouterProvider router={createThrowingRouter(networkError)} />)
 
     expect(
-      screen.getByRole("heading", { name: NETWORK_MESSAGE }),
+      screen.getByRole("heading", { name: ERROR_TITLE }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(NETWORK_MESSAGE)),
+    ).toBeInTheDocument()
+  })
+
+  it("renders the timeout message for aborted requests", () => {
+    const canceled = new AxiosError("canceled", "ERR_CANCELED", {
+      signal: { aborted: true, reason: new Error("timeout") },
+    } as never)
+
+    render(<RouterProvider router={createThrowingRouter(canceled)} />)
+
+    expect(
+      screen.getByRole("heading", { name: ERROR_TITLE }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(TIMEOUT_MESSAGE)),
+    ).toBeInTheDocument()
+  })
+
+  it("renders the error title for 500 API errors", () => {
+    const serverError = new AxiosError(
+      "Request failed with status code 500",
+      "ERR_BAD_RESPONSE",
+      undefined,
+      undefined,
+      {
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: {},
+        config: {} as never,
+        data: { statusCode: 500, message: "Layanan sedang bermasalah" },
+      },
+    )
+
+    render(<RouterProvider router={createThrowingRouter(serverError)} />)
+
+    expect(
+      screen.getByRole("heading", { name: ERROR_TITLE }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Layanan sedang bermasalah/),
     ).toBeInTheDocument()
   })
 

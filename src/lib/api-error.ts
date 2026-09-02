@@ -20,6 +20,9 @@ const NETWORK_MESSAGE = "Tidak dapat terhubung ke server. Periksa koneksi Anda."
 const TIMEOUT_STATUS = 408
 const TIMEOUT_MESSAGE = "Permintaan melebihi batas waktu. Silakan coba lagi."
 
+/** Judul generik yang aman untuk halaman error route (bukan detail teknis). */
+export const ERROR_TITLE = "Terjadi kesalahan"
+
 /**
  * Normalisasi semua kegagalan request menjadi satu model error.
  * Lapisan atas (UI/hook) cukup mengenal `ApiError`, bukan bentuk error Axios/backend.
