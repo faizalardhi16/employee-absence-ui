@@ -38,6 +38,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuthStore } from "@/stores/auth.store"
 import { toApiError } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
+import { getTodayRecord, clockIn as apiClockIn, autoCloseRecord } from "@/lib/api"
 import type { AttendanceRecord, EmployeeAttendanceRecord } from "@/types/attendance"
 
 type Period = "Hari Ini" | "7 Hari" | "30 Hari"
@@ -254,15 +255,16 @@ function useCurrentTime() {
   return now
 }
 
-// ---------- Clock out (attendance) ----------
+// ---------- Clock in/out (attendance) ----------
 
 const ATTENDANCE_QUERY_KEY = ["attendance", "today"] as const
 
 const NO_OPEN_RECORD_MESSAGE =
   "Belum ada catatan kehadiran yang sedang terbuka untuk hari ini. Clock out dibatalkan."
 const TOAST_CLOCK_OUT_SUCCESS = "Clock out berhasil. Sampai jumpa!"
+const OPEN_RECORD_TODAY_MESSAGE = "You already have an open attendance record today"
 
-/** Record kehadiran hari ini yang masih terbuka (sudah clock in, belum clock out). */
+/** Record kehadiran yang masih terbuka (sudah clock in, belum clock out). */
 function findOpenRecord(records: AttendanceRecord[]): AttendanceRecord | null {
   return (
     records.find((record) => record.clockIn !== null && record.clockOut === null) ??
@@ -271,9 +273,9 @@ function findOpenRecord(records: AttendanceRecord[]): AttendanceRecord | null {
 }
 
 /**
- * Hook clock out: validasi dulu apakah ada record kehadiran terbuka untuk hari
- * ini. Bila tidak ada, aksi ditolak (toast + error). Bila ada, tutup record
- * via API. Loading & error dikelola lewat state react-query.
+ * Hook clock in/out: validasi sebelum clock in (cek record terbuka hari ini atau hari sebelumnya),
+ * auto-close record hari sebelumnya jika ada, dan clock out untuk record hari ini.
+ * Loading & error dikelola lewat state react-query.
  */
 function useClock() {
   const queryClient = useQueryClient()
@@ -290,6 +292,44 @@ function useClock() {
   /** Record yang ditampilkan: record terbuka bila ada, jika tidak yang terakhir. */
   const todayRecord =
     openRecord ?? (records.length > 0 ? records[records.length - 1] : null)
+
+  const clockInMutation = useMutation({
+    mutationFn: async () => {
+      const todayRecords = await getTodayRecord()
+      const openRecordToday = findOpenRecord(todayRecords)
+
+      if (openRecordToday) {
+        const recordDate = new Date(openRecordToday.date)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const recordDateOnly = new Date(recordDate.getFullYear(), recordDate.getMonth(), recordDate.getDate())
+
+        if (recordDateOnly.getTime() === today.getTime()) {
+          throw new Error(OPEN_RECORD_TODAY_MESSAGE)
+        }
+
+        const autoCloseTime = new Date()
+        autoCloseTime.setUTCHours(16, 59, 59, 0)
+        const autoCloseISO = autoCloseTime.toISOString()
+        await autoCloseRecord(openRecordToday.id, autoCloseISO)
+      }
+
+      return apiClockIn()
+    },
+    onSuccess: (newRecord) => {
+      queryClient.setQueryData<AttendanceRecord[]>(
+        ATTENDANCE_QUERY_KEY,
+        (current = []) => [...current, newRecord],
+      )
+      setValidationError(null)
+      toast.success("Clock in berhasil. Selamat bekerja!")
+    },
+    onError: (error) => {
+      const message = toApiError(error).message
+      setValidationError(message)
+      toast.error(message)
+    },
+  })
 
   const clockOutMutation = useMutation({
     mutationFn: (recordId: string) => attendanceApi.clockOut(recordId),
@@ -311,6 +351,11 @@ function useClock() {
     },
   })
 
+  const clockIn = () => {
+    setValidationError(null)
+    clockInMutation.mutate()
+  }
+
   const clockOut = () => {
     setValidationError(null)
 
@@ -325,6 +370,7 @@ function useClock() {
   }
 
   const isLoading = todayQuery.isPending
+  const isClockInPending = clockInMutation.isPending
   const isClockOutPending = clockOutMutation.isPending
   const loadError = todayQuery.error ? toApiError(todayQuery.error).message : null
 
@@ -332,9 +378,11 @@ function useClock() {
     todayRecord,
     openRecord,
     isLoading,
+    isClockInPending,
     isClockOutPending,
-    isPending: isLoading || isClockOutPending,
+    isPending: isLoading || isClockInPending || isClockOutPending,
     error: loadError ?? validationError,
+    clockIn,
     clockOut,
   }
 }

@@ -27,4 +27,19 @@ export const attendanceApi = {
     )
     return data
   },
+
+  /** Buat record clock-in baru dengan timestamp UTC saat ini. */
+  async clockIn(): Promise<AttendanceRecord> {
+    const { data } = await api.post<AttendanceRecord>("/attendance/clock-in")
+    return data
+  },
+
+  /** Tutup otomatis record terbuka pada waktu tertentu (untuk auto-close hari sebelumnya). */
+  async autoClose(recordId: string, clockOutTime: string): Promise<AttendanceRecord> {
+    const { data } = await api.patch<AttendanceRecord>(
+      `/attendance/${recordId}/auto-close`,
+      { clockOut: clockOutTime },
+    )
+    return data
+  },
 }

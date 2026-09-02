@@ -55,9 +55,10 @@ function createWrapper() {
 
 function setupAuthStore() {
   useAuthStore.getState().setUser({
-    userId: "1",
+    userId: 1,
     email: "test@example.com",
     roles: ["admin"],
+    developerMode: false,
   })
 }
 
@@ -68,6 +69,7 @@ describe("DashboardPage - Auto-refresh and Manual Refresh", () => {
     mockedAttendanceApi.getByDate.mockResolvedValue([])
     mockedAttendanceApi.clockOut.mockResolvedValue({
       id: "1",
+      userId: 1,
       date: "2026-01-01",
       clockIn: "2026-01-01T08:00:00Z",
       clockOut: null,
