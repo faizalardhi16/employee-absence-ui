@@ -17,7 +17,7 @@ import {
 } from "@/stores/request-log.store"
 import type { InternalAxiosRequestConfig } from "axios"
 
-const REQUEST_TIMEOUT_MS = 15_000
+export const REQUEST_TIMEOUT_MS = 15_000
 
 /** Tanda waktu & salinan body request, dilampirkan pada config oleh request interceptor. */
 interface TimedConfig extends InternalAxiosRequestConfig {
@@ -32,6 +32,10 @@ interface TimedConfig extends InternalAxiosRequestConfig {
   }
   /** Penanda retry CSRF — mencegah retry berulang tak terbatas. */
   _csrfRetried?: boolean
+  /** Controller sinyal untuk timeout request — dibatalkan lewat setTimeout. */
+  _abortController?: AbortController
+  /** Timer timeout; dibersihkan saat request selesai (sukses/error). */
+  _timeoutHandle?: ReturnType<typeof setTimeout>
 }
 
 /**
@@ -58,7 +62,6 @@ function unwrapEnvelope(body: unknown): unknown {
 export const api = axios.create({
   baseURL: appConfig.apiBaseUrl,
   withCredentials: true,
-  timeout: REQUEST_TIMEOUT_MS,
 })
 
 api.interceptors.request.use(async (config) => {
@@ -67,6 +70,12 @@ api.interceptors.request.use(async (config) => {
     startedAt: performance.now(),
     requestBody: serializeLogBody(redactSensitive(config.data)),
   }
+  // Timeout via AbortController: batalkan request setelah REQUEST_TIMEOUT_MS.
+  // Timer dibersihkan di response interceptor agar tidak membocorkan handle.
+  const controller = new AbortController()
+  timed._abortController = controller
+  timed._timeoutHandle = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  config.signal = controller.signal
   // Proteksi CSRF: request yang mengubah state wajib membawa header token.
   if (isUnsafeMethod(config.method)) {
     const csrfToken = await ensureCsrfToken()
@@ -77,15 +86,18 @@ api.interceptors.request.use(async (config) => {
 
 api.interceptors.response.use(
   (response) => {
+    const config = response.config as TimedConfig
+    clearTimeout(config._timeoutHandle)
     // Normalisasi: konsumen selalu menerima payload domain langsung, bukan envelope.
     response.data = unwrapEnvelope(response.data)
-    logCompleted(response.config as TimedConfig, response.status)
-    recordRequestLog(response.config as TimedConfig, response.status, response.data, false)
+    logCompleted(config, response.status)
+    recordRequestLog(config, response.status, response.data, false)
     return response
   },
   (error) => {
     const config = error?.config as TimedConfig | undefined
     if (config) {
+      clearTimeout(config._timeoutHandle)
       const status = error.response?.status ?? 0
       logCompleted(config, status)
       recordRequestLog(config, status, error.response?.data, true)
