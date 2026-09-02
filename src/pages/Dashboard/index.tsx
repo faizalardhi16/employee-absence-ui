@@ -5,6 +5,7 @@ import {
   GaugeIcon,
   Loader2Icon,
   LockIcon,
+  LogInIcon,
   LogOutIcon,
   MoonStarIcon,
   RefreshCwIcon,
@@ -511,7 +512,7 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const permissionsQuery = usePermissions()
   const now = useCurrentTime()
-  const { todayRecord, openRecord, isPending, error: clockError, clockOut } = useClock()
+  const { todayRecord, openRecord, isPending, isClockInPending, error: clockError, clockIn, clockOut } = useClock()
   const [period, setPeriod] = useState<Period>("7 Hari")
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
   const queryClient = useQueryClient()
@@ -601,6 +602,21 @@ export function DashboardPage() {
               <span className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
                 API · 42 ms
               </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={clockIn}
+                disabled={isPending || openRecord !== null}
+                aria-label="Clock In"
+              >
+                {isClockInPending ? (
+                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <LogInIcon className="size-4" aria-hidden />
+                )}
+                Clock In
+              </Button>
               <Button
                 type="button"
                 size="sm"
