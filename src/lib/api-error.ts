@@ -10,6 +10,8 @@ export interface ApiErrorPayload {
 const FALLBACK_STATUS = 500
 const FALLBACK_MESSAGE = "Terjadi kesalahan yang tidak terduga. Coba lagi nanti."
 const NETWORK_MESSAGE = "Tidak dapat terhubung ke server. Periksa koneksi Anda."
+const TIMEOUT_STATUS = 408
+const TIMEOUT_MESSAGE = "Permintaan melebihi batas waktu. Silakan coba lagi."
 
 /**
  * Normalisasi semua kegagalan request menjadi satu model error.
@@ -34,6 +36,12 @@ export function toApiError(candidate: unknown): ApiError {
   if (candidate instanceof ApiError) return candidate
 
   if (candidate instanceof AxiosError) {
+    // Request dibatalkan oleh AbortController karena melewati batas waktu.
+    // Dipetakan ke pesan ramah pengguna, bukan error/bantalan stack mentah.
+    if (isTimeoutError(candidate)) {
+      return new ApiError(TIMEOUT_STATUS, TIMEOUT_MESSAGE)
+    }
+
     if (candidate.response) {
       const payload = candidate.response.data as Partial<ApiErrorPayload> | undefined
       const message =
@@ -49,4 +57,13 @@ export function toApiError(candidate: unknown): ApiError {
   }
 
   return new ApiError(FALLBACK_STATUS, FALLBACK_MESSAGE)
+}
+
+/** Deteksi pembatalan request akibat timeout (AbortController). */
+function isTimeoutError(candidate: AxiosError): boolean {
+  return (
+    candidate.code === "ERR_CANCELED" ||
+    candidate.code === "ECONNABORTED" ||
+    candidate.config?.signal?.aborted === true
+  )
 }
