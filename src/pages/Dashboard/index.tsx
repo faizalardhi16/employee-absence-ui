@@ -32,6 +32,7 @@ import { attendanceApi } from "@/features/attendance/attendance.api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuthStore } from "@/stores/auth.store"
 import { toApiError } from "@/lib/api-error"
@@ -461,6 +462,7 @@ export function DashboardPage() {
   const now = useCurrentTime()
   const { todayRecord, openRecord, isPending, error: clockError, clockOut } = useClock()
   const [period, setPeriod] = useState<Period>("7 Hari")
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
 
   const series = SERIES[period]
   const kpis = KPI_PER_PERIOD[period]
@@ -497,6 +499,18 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
+            <div className="w-full sm:w-56">
+              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+                Tanggal
+              </label>
+              <DatePicker
+                value={selectedDate}
+                onValueChange={(date) => {
+                  if (date) setSelectedDate(date)
+                }}
+                max={new Date()}
+              />
+            </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="flex items-center gap-1.5 rounded-full border border-chart-2/30 bg-chart-2/10 px-3 py-1 text-[11px] font-medium text-chart-2">
                 <span className="relative flex size-1.5">
