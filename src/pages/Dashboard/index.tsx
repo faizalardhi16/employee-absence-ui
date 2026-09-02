@@ -282,7 +282,12 @@ function useClock() {
     queryFn: () => attendanceApi.getToday(),
   })
 
-  const openRecord = findOpenRecord(todayQuery.data ?? [])
+  const records = todayQuery.data ?? []
+  const openRecord = findOpenRecord(records)
+
+  /** Record yang ditampilkan: record terbuka bila ada, jika tidak yang terakhir. */
+  const todayRecord =
+    openRecord ?? (records.length > 0 ? records[records.length - 1] : null)
 
   const clockOutMutation = useMutation({
     mutationFn: (recordId: string) => attendanceApi.clockOut(recordId),
@@ -322,6 +327,7 @@ function useClock() {
   const loadError = todayQuery.error ? toApiError(todayQuery.error).message : null
 
   return {
+    todayRecord,
     openRecord,
     isLoading,
     isClockOutPending,
@@ -348,12 +354,74 @@ function displayName(email: string | undefined): string {
     .join(" ")
 }
 
+// ---------- Catatan kehadiran (waktu selesai dalam WIB) ----------
+
+/** Format timestamp UTC menjadi HH:mm:ss di zona waktu Asia/Jakarta (WIB, UTC+7). */
+function formatWibTime(iso: string | null): string {
+  if (!iso) return "-"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "-"
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).format(date)
+}
+
+/** Ringkasan catatan kehadiran hari ini; menampilkan waktu selesai (clock out) dalam WIB. */
+function AttendanceRecordCard({
+  record,
+  isPending,
+}: {
+  record: AttendanceRecord | null
+  isPending: boolean
+}) {
+  const isClosed = record !== null && record.clockOut !== null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ShieldCheckIcon className="size-4 text-primary" aria-hidden />
+          Catatan Kehadiran Hari Ini
+        </CardTitle>
+        <CardDescription>
+          Waktu clock in & clock out dikonversi ke zona waktu Asia/Jakarta (WIB).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {isPending ? (
+          <Skeleton className="h-16 w-full" />
+        ) : !record ? (
+          <p className="text-sm text-muted-foreground">
+            Belum ada catatan kehadiran untuk hari ini.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoBox label="Clock In (WIB)" value={formatWibTime(record.clockIn)} />
+            {isClosed ? (
+              <InfoBox
+                label="Clock Out — Selesai (WIB)"
+                value={formatWibTime(record.clockOut)}
+              />
+            ) : (
+              <InfoBox label="Status" value="Sedang berlangsung" />
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 /** Dashboard interaktif: KPI beranimasi, grafik periodik, umpan aktivitas. */
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const permissionsQuery = usePermissions()
   const now = useCurrentTime()
-  const { openRecord, isPending, error: clockError, clockOut } = useClock()
+  const { todayRecord, openRecord, isPending, error: clockError, clockOut } = useClock()
   const [period, setPeriod] = useState<Period>("7 Hari")
 
   const series = SERIES[period]
@@ -425,6 +493,9 @@ export function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Catatan kehadiran hari ini (waktu selesai dalam WIB) */}
+      <AttendanceRecordCard record={todayRecord} isPending={isPending} />
 
       {/* Pemilih periode + KPI */}
       <div className="flex flex-wrap items-center justify-between gap-3">
