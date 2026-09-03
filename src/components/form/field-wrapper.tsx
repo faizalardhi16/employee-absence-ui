@@ -31,7 +31,7 @@ export function FieldWrapper({
   return (
     <div className={cn("grid content-start gap-1.5", className)}>
       {label ? (
-        <Label htmlFor={id} className="text-[13px] leading-none font-medium">
+        <Label htmlFor={id} className="text-[13px] leading-none font-bold">
           {label}
           {required ? <span aria-hidden="true" className="ml-0.5 text-destructive">*</span> : null}
         </Label>

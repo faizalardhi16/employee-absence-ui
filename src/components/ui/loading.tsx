@@ -24,7 +24,7 @@ export function LoadingSpinner({ size = "md", label, className }: LoadingSpinner
       className={cn("inline-flex items-center gap-2 text-muted-foreground", className)}
     >
       <Loader2Icon className={cn("animate-spin text-current", SPINNER_SIZE_CLASSES[size])} aria-hidden />
-      {label ? <span className="text-sm font-medium">{label}</span> : null}
+      {label ? <span className="text-sm font-bold">{label}</span> : null}
     </span>
   )
 }
@@ -50,7 +50,7 @@ export function PageLoader({
       <div className="grid justify-items-center gap-4 text-center">
         <LoadingSpinner size="lg" />
         <div className="grid gap-1">
-          <p className="text-sm font-medium text-foreground">{label}</p>
+          <p className="text-sm font-bold text-foreground">{label}</p>
           {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
         </div>
       </div>

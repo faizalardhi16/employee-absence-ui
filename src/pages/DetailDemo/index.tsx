@@ -118,7 +118,7 @@ export function DetailDemoPage() {
             disabled
           />
           <div className="grid gap-2">
-            <label htmlFor="report-date" className="text-sm font-medium">
+            <label htmlFor="report-date" className="text-sm font-bold">
               Tanggal Kejadian
             </label>
             <DatePicker
@@ -156,7 +156,7 @@ export function DetailDemoPage() {
             required
           />
           <div className="grid gap-2">
-            <label htmlFor="chronology" className="text-sm font-medium">
+            <label htmlFor="chronology" className="text-sm font-bold">
               Uraian Kejadian
             </label>
             <Textarea
@@ -168,7 +168,7 @@ export function DetailDemoPage() {
             />
           </div>
           <div className="grid gap-2">
-            <label htmlFor="action" className="text-sm font-medium">
+            <label htmlFor="action" className="text-sm font-bold">
               Tindakan yang Diambil
             </label>
             <Textarea

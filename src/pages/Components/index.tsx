@@ -100,7 +100,7 @@ export function ComponentsPage() {
           <a
             key={section.id}
             href={`#${section.id}`}
-            className="flex h-8 shrink-0 items-center rounded-sm border border-transparent px-3 text-sm font-medium text-muted-foreground transition-all duration-150 hover:border-border hover:bg-card hover:text-foreground"
+            className="flex h-8 shrink-0 items-center rounded-sm border border-transparent px-3 text-sm font-bold text-muted-foreground transition-all duration-150 hover:border-border hover:bg-card hover:text-foreground"
           >
             {section.label}
           </a>

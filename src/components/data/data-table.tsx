@@ -218,7 +218,7 @@ export function DataTable<T>({
                         type="button"
                         onClick={() => toggleSort(column.id)}
                         aria-label={`Urutkan berdasarkan ${column.header}`}
-                        className="group -m-1 inline-flex items-center gap-1 rounded p-1 font-medium outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+                        className="group -m-1 inline-flex items-center gap-1 rounded p-1 font-bold outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
                       >
                         {column.header}
                         {isSorted ? (

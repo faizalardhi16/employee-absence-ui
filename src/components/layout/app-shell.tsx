@@ -91,7 +91,7 @@ export function AppShell() {
               <div className="glass-panel min-h-full overflow-hidden rounded-none border-x-0 border-b-0 shadow-none">
                 <div className="border-b border-border/60 bg-gradient-to-r from-primary/8 via-transparent to-accent/12 px-4 py-4 md:px-6">
                   <div className="flex flex-col gap-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
                       Internal workspace
                     </p>
                     <p className="text-sm text-muted-foreground">

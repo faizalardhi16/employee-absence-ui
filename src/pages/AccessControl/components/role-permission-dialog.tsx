@@ -90,7 +90,7 @@ export function RolePermissionDialog({
                   disabled={pending}
                   onClick={() => handleToggle(permission)}
                   className={cn(
-                    "flex items-center gap-3 rounded-sm border px-3 py-2 text-left transition-colors duration-150",
+                    "flex items-center gap-3 rounded-sm border px-3 py-2 text-left font-bold transition-colors duration-150",
                     "outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                     owned
                       ? "border-primary/30 bg-primary/8 hover:bg-primary/12"

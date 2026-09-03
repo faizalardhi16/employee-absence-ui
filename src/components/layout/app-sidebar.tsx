@@ -65,7 +65,7 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
         {/* Menu utama */}
         <div className="flex flex-col gap-1">
           {!collapsed ? (
-            <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground/80">
+            <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.26em] text-muted-foreground/80">
               Menu utama
             </p>
           ) : null}
@@ -89,7 +89,7 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
         {/* Menu sekunder */}
         <div className="flex flex-col gap-1">
           {!collapsed ? (
-            <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground/80">
+            <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.26em] text-muted-foreground/80">
               Sistem
             </p>
           ) : (
@@ -179,7 +179,7 @@ function NavItemLink({
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
         cn(
-          "group relative flex min-h-11 w-full items-center overflow-hidden rounded-sm text-sm font-medium transition-all duration-200 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "group relative flex min-h-11 w-full items-center overflow-hidden rounded-sm text-sm font-bold transition-all duration-200 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
           collapsed ? "justify-center px-0" : "gap-2.5 px-3",
           isActive
             ? "bg-gradient-to-r from-primary/15 via-primary/6 to-transparent text-primary shadow-[inset_0_0_0_1px_rgba(37,99,235,0.12)]"
@@ -248,7 +248,7 @@ function NavGroup({
             type="button"
             title={item.label}
             className={cn(
-              "flex min-h-11 w-full items-center justify-center rounded-sm text-sm font-medium transition-all duration-200 ease-out",
+              "flex min-h-11 w-full items-center justify-center rounded-sm text-sm font-bold transition-all duration-200 ease-out",
               isActive ? GROUP_ACTIVE : GROUP_IDLE
             )}
           >
@@ -257,13 +257,13 @@ function NavGroup({
           </button>
         </PopoverTrigger>
         <PopoverContent side="right" align="start" sideOffset={8} className="w-60 p-2">
-          <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{item.label}</p>
+          <p className="px-2 py-1 text-xs font-bold text-muted-foreground">{item.label}</p>
           <div className="mt-1 flex flex-col gap-1">
             {item.children.map((child) =>
               child.disabled ? (
                 <span
                   key={child.to}
-                  className="flex cursor-not-allowed items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-muted-foreground/60"
+                  className="flex cursor-not-allowed items-center gap-2 rounded-sm px-2.5 py-2 text-sm font-bold text-muted-foreground/60"
                 >
                   <LockIcon className="size-3.5" aria-hidden />
                   {child.label}
@@ -278,9 +278,9 @@ function NavGroup({
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "rounded-sm px-2.5 py-2 text-sm transition-colors",
+                      "rounded-sm px-2.5 py-2 text-sm font-bold transition-colors",
                       isActive
-                        ? "bg-primary/12 font-medium text-primary"
+                        ? "bg-primary/12 font-bold text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )
                   }
@@ -302,7 +302,7 @@ function NavGroup({
         onClick={onToggle}
         aria-expanded={isOpen}
         className={cn(
-          "group flex min-h-11 w-full items-center gap-2.5 rounded-sm px-3 text-sm font-medium transition-all duration-200 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "group flex min-h-11 w-full items-center gap-2.5 rounded-sm px-3 text-sm font-bold transition-all duration-200 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
           isActive ? GROUP_ACTIVE : GROUP_IDLE
         )}
       >
@@ -333,12 +333,12 @@ function NavGroup({
               child.disabled ? (
                 <span
                   key={child.to}
-                  className="flex cursor-not-allowed items-center gap-2 rounded-sm px-3 py-2.5 text-sm text-muted-foreground/60"
+                  className="flex cursor-not-allowed items-center gap-2 rounded-sm px-3 py-2.5 text-sm font-bold text-muted-foreground/60"
                 >
                   <LockIcon className="size-3.5 shrink-0" aria-hidden />
                   <span className="truncate">{child.label}</span>
                   {child.badge ? (
-                    <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                    <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold">
                       {child.badge}
                     </span>
                   ) : null}
@@ -350,9 +350,9 @@ function NavGroup({
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "group relative flex items-center gap-2 rounded-sm px-3 py-2.5 text-sm transition-colors duration-200",
+                      "group relative flex items-center gap-2 rounded-sm px-3 py-2.5 text-sm font-bold transition-colors duration-200",
                       isActive
-                        ? "bg-primary/12 font-medium text-primary"
+                        ? "bg-primary/12 font-bold text-primary"
                         : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )
                   }
@@ -391,7 +391,7 @@ function DisabledItem({
     <div
       title={collapsed ? `${item.label} (${item.badge})` : undefined}
       className={cn(
-        "flex min-h-11 w-full cursor-not-allowed items-center gap-2.5 rounded-sm text-sm font-medium text-muted-foreground/55",
+        "flex min-h-11 w-full cursor-not-allowed items-center gap-2.5 rounded-sm text-sm font-bold text-muted-foreground/55",
         collapsed ? "justify-center px-0" : "px-3"
       )}
     >
@@ -400,7 +400,7 @@ function DisabledItem({
         <>
           <span className="truncate">{item.label}</span>
           {item.badge ? (
-            <span className="ml-auto shrink-0 rounded-full border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium">
+            <span className="ml-auto shrink-0 rounded-full border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-bold">
               {item.badge}
             </span>
           ) : null}

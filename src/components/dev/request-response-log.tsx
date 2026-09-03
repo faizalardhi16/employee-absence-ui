@@ -45,7 +45,7 @@ function MethodBadge({ method }: { method: string }) {
   return (
     <span
       className={cn(
-        "rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-semibold",
+        "rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-bold",
         METHOD_BADGE_CLASSES[method] ?? "border-border bg-muted text-muted-foreground",
       )}
     >
@@ -197,7 +197,7 @@ function LogRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left font-bold transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
       >
         {expanded ? (
           <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
@@ -236,7 +236,7 @@ function BodyBlock({ label, time, body }: { label: string; time: number; body?: 
   return (
     <div className="min-w-0">
       <p className="mb-1 flex items-baseline justify-between gap-2">
-        <span className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+        <span className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground uppercase">
           {label}
         </span>
         <span className="font-mono text-[10px] text-muted-foreground/70">

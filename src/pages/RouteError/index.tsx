@@ -2,19 +2,20 @@ import { RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouteError } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
+import { ERROR_TITLE, toApiError } from "@/lib/api-error"
 import { logger } from "@/lib/logger"
 
-const ERROR_TITLE = "Terjadi kesalahan yang tidak terduga"
-
 /**
- * Fallback error boundary untuk route React Router:
- * menampilkan pesan ramah + aksi reload, tanpa mematikan seluruh tab.
+ * Fallback error boundary untuk route React Router.
+ * Error API dinormalisasi via toApiError: kegagalan koneksi → pesan jaringan,
+ * error tak dikenal → pesan fallback generik.
  */
 export function RouteErrorPage() {
   const error = useRouteError()
+  const apiError = toApiError(error)
 
   logger.error("route render failed", {
-    error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    error: apiError.message,
   })
 
   return (
@@ -24,7 +25,7 @@ export function RouteErrorPage() {
       </div>
       <h1 className="text-xl font-semibold">{ERROR_TITLE}</h1>
       <p className="max-w-md text-sm text-muted-foreground">
-        Halaman gagal dirender. Coba muat ulang; jika berlanjut, periksa console untuk detail
+        {apiError.message}. Coba muat ulang; jika berlanjut, periksa console untuk detail
         teknis.
       </p>
       <Button onClick={() => window.location.reload()} variant="outline">

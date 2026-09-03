@@ -108,7 +108,7 @@ export function DonutChart({ segments, centerLabel, className }: DonutChartProps
               )}
             >
               <span className={cn("size-2.5 shrink-0 rounded-full", segment.colorClass.replace("stroke-", "bg-"))} aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              <span className="min-w-0 flex-1 truncate text-xs font-bold text-muted-foreground">
                 {segment.label}
               </span>
               <span className="text-xs font-medium tabular-nums">{segment.value.toLocaleString("id-ID")}</span>

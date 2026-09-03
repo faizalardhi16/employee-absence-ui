@@ -104,7 +104,7 @@ export function ProfilePage() {
       <section className="glass-panel rounded-md p-5 md:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
               Akun
             </p>
             <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
@@ -257,7 +257,7 @@ export function ProfilePage() {
                 )}
               >
                 <div className="space-y-1">
-                  <p className="flex items-center gap-2 text-sm font-medium">
+                  <p className="flex items-center gap-2 text-sm font-bold">
                     <span
                       className={cn(
                         "size-1.5 rounded-full",
