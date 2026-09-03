@@ -43,7 +43,7 @@ function DecorativeCircles() {
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-white/10 bg-white/10 p-4 backdrop-blur-md">
-      <p className="text-[11px] uppercase tracking-[0.22em] text-blue-100/70">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-100/70">{label}</p>
       <p className="mt-2 text-lg font-semibold">{value}</p>
     </div>
   )
@@ -52,7 +52,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export function FeaturePill({ title, description }: { title: string; description: string }) {
   return (
     <div className="rounded-sm border border-border/70 bg-muted/40 p-4">
-      <p className="font-medium text-foreground">{title}</p>
+      <p className="font-bold text-foreground">{title}</p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
     </div>
   )

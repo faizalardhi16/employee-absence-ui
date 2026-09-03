@@ -152,7 +152,7 @@ export function DatePicker({
             >
               <ChevronLeftIcon aria-hidden />
             </Button>
-            <p className="text-sm font-medium capitalize">{monthLabel}</p>
+            <p className="text-sm font-bold capitalize">{monthLabel}</p>
             <Button
               variant="ghost"
               size="icon-xs"
@@ -177,7 +177,7 @@ export function DatePicker({
             {WEEKDAYS.map((day) => (
               <span
                 key={day}
-                className="flex size-8 items-center justify-center text-xs font-medium text-muted-foreground"
+                className="flex size-8 items-center justify-center text-xs font-bold text-muted-foreground"
               >
                 {day}
               </span>
@@ -214,13 +214,13 @@ export function DatePicker({
                         year: "numeric",
                       })}
                       className={cn(
-                        "flex size-8 items-center justify-center rounded-sm text-sm transition-all duration-150 ease-out outline-none",
+                        "flex size-8 items-center justify-center rounded-sm text-sm font-bold transition-all duration-150 ease-out outline-none",
                         "hover:bg-muted hover:text-foreground",
                         "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
                         "disabled:pointer-events-none disabled:opacity-35",
                         isToday && !selected && "ring-1 ring-inset ring-ring/60",
                         selected &&
-                          "bg-primary font-semibold text-primary-foreground shadow-[0_8px_20px_rgba(37,99,235,0.25)] animate-in zoom-in-90 fade-in-0 duration-150"
+                          "bg-primary font-bold text-primary-foreground shadow-[0_8px_20px_rgba(37,99,235,0.25)] animate-in zoom-in-90 fade-in-0 duration-150"
                       )}
                     >
                       {day.getDate()}

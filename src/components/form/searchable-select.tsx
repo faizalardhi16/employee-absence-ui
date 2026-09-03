@@ -117,7 +117,7 @@ export function SearchableSelect({
               aria-invalid={Boolean(error) || undefined}
               disabled={disabled}
               className={cn(
-                "group h-9 w-full justify-between gap-2 px-3 font-normal shadow-xs",
+                "group h-9 w-full justify-between gap-2 px-3 shadow-xs",
                 "transition-[color,box-shadow,border-color] duration-200 hover:border-foreground/25",
                 "data-[state=open]:border-ring data-[state=open]:ring-4 data-[state=open]:ring-ring/15",
                 !selected && !leftIcon && "text-muted-foreground",

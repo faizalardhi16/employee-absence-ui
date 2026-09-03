@@ -235,6 +235,11 @@ describe("DashboardPage - Clock-in confirmation in WIB", () => {
       await user.click(clockInButton)
     })
 
+    const confirmButton = await screen.findByRole("button", { name: /^confirm$/i })
+    await act(async () => {
+      await user.click(confirmButton)
+    })
+
     expect(
       await screen.findByText(/Clocked in at: 2026-01-15 08:30:00 WIB/),
     ).toBeInTheDocument()
@@ -251,6 +256,11 @@ describe("DashboardPage - Clock-in confirmation in WIB", () => {
 
     await act(async () => {
       await user.click(clockInButton)
+    })
+
+    const confirmButton = await screen.findByRole("button", { name: /^confirm$/i })
+    await act(async () => {
+      await user.click(confirmButton)
     })
 
     expect(

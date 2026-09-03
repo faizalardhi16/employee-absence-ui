@@ -172,8 +172,11 @@ export async function getTodayRecord(): Promise<AttendanceRecord[]> {
   return data
 }
 
-export async function clockIn(): Promise<AttendanceRecord> {
-  const { data } = await api.post<AttendanceRecord>("/attendance/clock-in")
+export async function clockIn(timestamp?: string): Promise<AttendanceRecord> {
+  const { data } = await api.post<AttendanceRecord>(
+    "/attendance/clock-in",
+    timestamp ? { timestamp } : undefined,
+  )
   return data
 }
 

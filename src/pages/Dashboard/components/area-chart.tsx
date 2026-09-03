@@ -132,12 +132,17 @@ export function AreaChart({
       <div className="mt-1 flex justify-between px-0.5 text-[10px] text-muted-foreground">
         {labels.length <= 8
           ? labels.map((label, index) => (
-              <span key={label} className={cn(hoverIndex === index && "font-medium text-foreground")}>
+              <span
+                key={label}
+                className={cn("font-bold", hoverIndex === index && "text-foreground")}
+              >
                 {label}
               </span>
             ))
           : [0, Math.floor(labels.length / 2), labels.length - 1].map((index) => (
-              <span key={labels[index]}>{labels[index]}</span>
+              <span key={labels[index]} className="font-bold">
+                {labels[index]}
+              </span>
             ))}
       </div>
 

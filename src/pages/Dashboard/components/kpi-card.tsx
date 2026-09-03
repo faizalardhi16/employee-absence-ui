@@ -55,7 +55,7 @@ export function KpiCard({
       />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
             {label}
           </p>
           <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">

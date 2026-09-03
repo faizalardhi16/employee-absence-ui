@@ -15,7 +15,7 @@ import {
   UserPlusIcon,
   UsersIcon,
 } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -30,6 +30,7 @@ import { InfoBox, SessionStatus } from "./components/info-box"
 import { DataTable } from "@/components/data/data-table"
 import type { DataColumn } from "@/components/data/data-table"
 import { usePermissions } from "@/features/auth/use-auth"
+import { ClockInConfirmDialog } from "@/features/attendance/components/clock-in-confirm-dialog"
 import { attendanceApi } from "@/features/attendance/attendance.api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -264,7 +265,11 @@ const ATTENDANCE_QUERY_KEY = ["attendance", "today"] as const
 const NO_OPEN_RECORD_MESSAGE =
   "Belum ada catatan kehadiran yang sedang terbuka untuk hari ini. Clock out dibatalkan."
 const TOAST_CLOCK_OUT_SUCCESS = "Clock out berhasil. Sampai jumpa!"
+const TOAST_CLOCK_IN_SUCCESS = "Clock in berhasil. Selamat bekerja!"
 const OPEN_RECORD_TODAY_MESSAGE = "You already have an open attendance record today"
+const ALREADY_CLOCKED_IN_MESSAGE = "Already clocked in"
+const INVALID_CLOCK_IN_TIMESTAMP_MESSAGE =
+  "Invalid clock-in timestamp received from system. No record was created."
 
 /** Record kehadiran yang masih terbuka (sudah clock in, belum clock out). */
 function findOpenRecord(records: AttendanceRecord[]): AttendanceRecord | null {
@@ -272,6 +277,29 @@ function findOpenRecord(records: AttendanceRecord[]): AttendanceRecord | null {
     records.find((record) => record.clockIn !== null && record.clockOut === null) ??
     null
   )
+}
+
+/** Apakah record milik hari ini (membandingkan tanggal, bukan jam)? */
+function isRecordFromToday(record: AttendanceRecord | null | undefined): boolean {
+  if (!record || !record.date) return false
+  const [year, month, day] = record.date.split("-").map(Number)
+  if ([year, month, day].some(Number.isNaN)) return false
+  const today = new Date()
+  return (
+    year === today.getFullYear() &&
+    month === today.getMonth() + 1 &&
+    day === today.getDate()
+  )
+}
+
+/** Status clock berdasarkan record hari ini: CLOCKED_IN bila ada record terbuka hari ini. */
+function getClockStatus(openRecord: AttendanceRecord | null): "CLOCKED_IN" | "CLOCKED_OUT" {
+  return openRecord && isRecordFromToday(openRecord) ? "CLOCKED_IN" : "CLOCKED_OUT"
+}
+
+/** Timestamp clock-in dari record dianggap valid bila ada & tanggalnya valid. */
+function isValidClockInTimestamp(iso: string | null | undefined): iso is string {
+  return typeof iso === "string" && iso.length > 0 && !Number.isNaN(new Date(iso).getTime())
 }
 
 /**
@@ -282,6 +310,8 @@ function findOpenRecord(records: AttendanceRecord[]): AttendanceRecord | null {
 function useClock() {
   const queryClient = useQueryClient()
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const clockInSubmittingRef = useRef(false)
 
   const todayQuery = useQuery({
     queryKey: ATTENDANCE_QUERY_KEY,
@@ -290,13 +320,14 @@ function useClock() {
 
   const records = todayQuery.data ?? []
   const openRecord = findOpenRecord(records)
+  const clockStatus = getClockStatus(openRecord)
 
   /** Record yang ditampilkan: record terbuka bila ada, jika tidak yang terakhir. */
   const todayRecord =
     openRecord ?? (records.length > 0 ? records[records.length - 1] : null)
 
   const clockInMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (confirmedAt: Date) => {
       const todayRecords = await getTodayRecord()
       const openRecordToday = findOpenRecord(todayRecords)
 
@@ -316,7 +347,14 @@ function useClock() {
         await autoCloseRecord(openRecordToday.id, autoCloseISO)
       }
 
-      return apiClockIn()
+      const newRecord = await apiClockIn(confirmedAt.toISOString())
+
+      // Timestamp sistem hilang/tidak valid => error, tidak ada yang dicatat.
+      if (!newRecord || !isValidClockInTimestamp(newRecord.clockIn)) {
+        throw new Error(INVALID_CLOCK_IN_TIMESTAMP_MESSAGE)
+      }
+
+      return newRecord
     },
     onSuccess: (newRecord) => {
       queryClient.setQueryData<AttendanceRecord[]>(
@@ -324,11 +362,15 @@ function useClock() {
         (current = []) => [...current, newRecord],
       )
       setValidationError(null)
-      toast.success("Clock in berhasil. Selamat bekerja!")
+      setConfirmOpen(false)
+      clockInSubmittingRef.current = false
+      toast.success(TOAST_CLOCK_IN_SUCCESS)
     },
     onError: (error) => {
       const message = toApiError(error).message
       setValidationError(message)
+      setConfirmOpen(false)
+      clockInSubmittingRef.current = false
       toast.error(message)
     },
   })
@@ -355,7 +397,26 @@ function useClock() {
 
   const clockIn = () => {
     setValidationError(null)
-    clockInMutation.mutate()
+
+    // Status CLOCKED_IN: blokir tanpa membuka modal, tampilkan pesan inline.
+    if (clockStatus === "CLOCKED_IN") {
+      setValidationError(ALREADY_CLOCKED_IN_MESSAGE)
+      return
+    }
+
+    // Status CLOCKED_OUT (termasuk tanpa catatan): buka modal konfirmasi.
+    // State tunggal menjamin klik ganda hanya menghasilkan satu modal.
+    setConfirmOpen(true)
+  }
+
+  /** Confirm dari modal: catat timestamp tepat saat klik, lalu rekam clock-in. */
+  const confirmClockIn = () => {
+    // Klik berulang (synchronous / sangat cepat) => abaikan: satu record.
+    if (clockInSubmittingRef.current || clockInMutation.isPending) return
+    clockInSubmittingRef.current = true
+    setValidationError(null)
+    setConfirmOpen(false)
+    clockInMutation.mutate(new Date())
   }
 
   const clockOut = () => {
@@ -379,12 +440,16 @@ function useClock() {
   return {
     todayRecord,
     openRecord,
+    clockStatus,
+    confirmOpen,
+    setConfirmOpen,
     isLoading,
     isClockInPending,
     isClockOutPending,
     isPending: isLoading || isClockInPending || isClockOutPending,
     error: loadError ?? validationError,
     clockIn,
+    confirmClockIn,
     clockOut,
   }
 }
@@ -523,7 +588,7 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const permissionsQuery = usePermissions()
   const now = useCurrentTime()
-  const { todayRecord, openRecord, isPending, isClockInPending, error: clockError, clockIn, clockOut } = useClock()
+  const { todayRecord, openRecord, isPending, isClockInPending, error: clockError, clockIn, confirmClockIn, confirmOpen, setConfirmOpen, clockOut } = useClock()
   const [period, setPeriod] = useState<Period>("7 Hari")
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
   const queryClient = useQueryClient()
@@ -549,7 +614,7 @@ export function DashboardPage() {
       <section className="glass-panel rounded-md p-5 md:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
               Control center
             </p>
             <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
@@ -576,7 +641,7 @@ export function DashboardPage() {
           <div className="flex flex-col items-end gap-2">
             <div className="flex w-full items-end gap-2 sm:w-72">
               <div className="flex-1">
-                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
                   Tanggal
                 </label>
                 <DatePicker
@@ -603,14 +668,14 @@ export function DashboardPage() {
               </Button>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="flex items-center gap-1.5 rounded-full border border-chart-2/30 bg-chart-2/10 px-3 py-1 text-[11px] font-medium text-chart-2">
+              <span className="flex items-center gap-1.5 rounded-full border border-chart-2/30 bg-chart-2/10 px-3 py-1 text-[11px] font-bold text-chart-2">
                 <span className="relative flex size-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-2 opacity-60" />
                   <span className="relative inline-flex size-1.5 rounded-full bg-chart-2" />
                 </span>
                 Live
               </span>
-              <span className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
+              <span className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-bold text-muted-foreground sm:inline-flex">
                 API · 42 ms
               </span>
               <Button
@@ -618,7 +683,7 @@ export function DashboardPage() {
                 size="sm"
                 variant="outline"
                 onClick={clockIn}
-                disabled={isPending || openRecord !== null}
+                disabled={isPending}
                 aria-label="Clock In"
               >
                 {isClockInPending ? (
@@ -652,12 +717,20 @@ export function DashboardPage() {
         </div>
       </section>
 
+      {/* Konfirmasi clock-in: cegah clock-in tak sengaja */}
+      <ClockInConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={confirmClockIn}
+        confirming={isClockInPending}
+      />
+
       {/* Catatan kehadiran hari ini (waktu selesai dalam WIB) */}
       <AttendanceRecordCard record={todayRecord} isPending={isPending} />
 
       {/* Pemilih periode + KPI */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-medium">Ringkasan {period.toLowerCase()}</p>
+        <p className="text-sm font-bold">Ringkasan {period.toLowerCase()}</p>
         <div
           role="group"
           aria-label="Pilih periode"
@@ -675,7 +748,7 @@ export function DashboardPage() {
               onClick={() => setPeriod(option)}
               aria-pressed={option === period}
               className={cn(
-                "relative z-10 h-8 rounded-sm px-3 text-xs font-medium transition-colors duration-200 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                "relative z-10 h-8 rounded-sm px-3 text-xs font-bold transition-colors duration-200 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                 option === period
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -776,7 +849,7 @@ export function DashboardPage() {
               <InfoBox label="User ID" value={String(user?.userId ?? "-")} />
             </div>
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
                 Peran
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -788,7 +861,7 @@ export function DashboardPage() {
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
                 Hak akses (permission)
               </p>
               <div className="mt-1.5 flex min-h-7 flex-wrap content-start gap-1.5">

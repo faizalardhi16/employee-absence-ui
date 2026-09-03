@@ -87,7 +87,7 @@ export function CreatePermissionForm({ onDone }: { onDone: () => void }) {
         onChange={(event) => setName(event.target.value)}
       />
       <div className="grid gap-2">
-        <label htmlFor="permission-description" className="text-sm font-medium">
+        <label htmlFor="permission-description" className="text-sm font-bold">
           Deskripsi
         </label>
         <Textarea

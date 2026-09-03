@@ -88,7 +88,7 @@ export function Pagination({
 
       <div className="flex flex-wrap items-center gap-1">
         {onPageSizeChange ? (
-          <label className="mr-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className="mr-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
             Baris per halaman
             <select
               value={pageSize}

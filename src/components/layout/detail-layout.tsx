@@ -114,7 +114,7 @@ function DetailHeader({ eyebrow, title, description, actions }: DetailHeaderProp
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 space-y-2">
           {eyebrow ? (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
               {eyebrow}
             </p>
           ) : null}
@@ -240,7 +240,7 @@ function SegmentNav({ segments }: { segments: DetailSegment[] }) {
       className="hidden lg:sticky lg:top-4 lg:block"
     >
       <div className="rounded-md border border-border/70 bg-card/80 p-2 backdrop-blur-xl">
-        <p className="px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground/80">
+        <p className="px-2 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.26em] text-muted-foreground/80">
           Segmen
         </p>
         <div className="flex flex-col gap-0.5">
@@ -253,7 +253,7 @@ function SegmentNav({ segments }: { segments: DetailSegment[] }) {
                 onClick={() => scrollTo(segment.id)}
                 aria-current={isActive ? "true" : undefined}
                 className={cn(
-                  "group relative flex min-h-9 w-full items-center gap-2.5 rounded-sm px-2.5 text-left text-[13px] font-medium transition-all duration-200 outline-none",
+                  "group relative flex min-h-9 w-full items-center gap-2.5 rounded-sm px-2.5 text-left text-[13px] font-bold transition-all duration-200 outline-none",
                   "focus-visible:ring-3 focus-visible:ring-ring/50",
                   isActive
                     ? "bg-primary/12 text-primary"

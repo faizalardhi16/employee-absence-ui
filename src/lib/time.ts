@@ -1,3 +1,27 @@
+/** Zona waktu lokal browser (IANA name), fallback "UTC". */
+export function getBrowserTimeZone(): string {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return zone || "UTC"
+  } catch {
+    return "UTC"
+  }
+}
+
+/** Singkatan zona waktu lokal browser (mis. "UTC", "WIB", "GMT+7"). */
+export function getBrowserTimeZoneAbbreviation(date: Date = new Date()): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZoneName: "short",
+    }).formatToParts(date)
+    const name = parts.find((part) => part.type === "timeZoneName")
+    if (name && name.value) return name.value
+  } catch {
+    // fall through ke fallback IANA name
+  }
+  return getBrowserTimeZone()
+}
+
 const TIME_ZONE = "Asia/Jakarta"
 
 const formatter = new Intl.DateTimeFormat("en-CA", {

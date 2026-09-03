@@ -90,8 +90,8 @@ export function BarChart({ data, className, colorClass = "text-primary" }: BarCh
           <span
             key={datum.label}
             className={cn(
-              "max-w-16 truncate transition-colors",
-              activeIndex === index && "font-medium text-foreground"
+              "max-w-16 truncate font-bold transition-colors",
+              activeIndex === index && "text-foreground"
             )}
           >
             {datum.label}

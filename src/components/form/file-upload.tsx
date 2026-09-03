@@ -191,7 +191,7 @@ export function FileUpload({
         <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary animate-in fade-in-0 zoom-in-90 duration-200">
           <UploadCloudIcon className="size-5" aria-hidden />
         </span>
-        <p className="text-sm font-medium">Tarik &amp; letakkan file di sini</p>
+        <p className="text-sm font-bold">Tarik &amp; letakkan file di sini</p>
         <p className="text-xs text-muted-foreground">
           atau{" "}
           <span className="font-medium text-primary underline underline-offset-2">

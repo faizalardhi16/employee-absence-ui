@@ -92,7 +92,7 @@ export function WelcomePage({ user, destination }: WelcomePageProps) {
             style={{ animationDelay: "40ms" }}
           >
             <BrandLogo className="[&_p]:text-white [&_p:last-child]:text-blue-100/80" />
-            <span className="hidden items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-100/70 sm:flex">
+            <span className="hidden items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-blue-100/70 sm:flex">
               <span className="size-1.5 rounded-full bg-chart-2 shadow-[0_0_12px_currentColor]" />
               Secure session
             </span>
@@ -102,7 +102,7 @@ export function WelcomePage({ user, destination }: WelcomePageProps) {
             className="grid max-w-2xl gap-6 animate-in fade-in-0 slide-in-from-bottom-3 duration-500"
             style={{ animationDelay: "140ms" }}
           >
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">
               <BadgeCheckIcon className="size-4" aria-hidden />
               Access verified
             </p>
@@ -133,7 +133,7 @@ export function WelcomePage({ user, destination }: WelcomePageProps) {
         >
           <div className="flex items-start justify-between gap-4">
             <div className="grid gap-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-200/80">Launch sequence</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-200/80">Launch sequence</p>
               <p className="text-xl font-semibold tracking-tight text-white">Preparing your view</p>
             </div>
             <ActivityIcon className="size-5 text-cyan-200" aria-hidden />
@@ -163,7 +163,7 @@ export function WelcomePage({ user, destination }: WelcomePageProps) {
             ))}
           </div>
 
-          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-blue-100/45">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-100/45">
             {appConfig.appName} · internal operations
           </p>
         </div>

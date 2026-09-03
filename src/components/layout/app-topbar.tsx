@@ -74,7 +74,7 @@ export function AppTopbar({ onOpenMobileNav }: AppTopbarProps) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground lg:flex">
+          <div className="hidden rounded-full border border-border/70 bg-card/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground lg:flex">
             Live operations
           </div>
           {user ? (

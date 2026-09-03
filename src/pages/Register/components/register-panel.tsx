@@ -34,7 +34,7 @@ export function RegisterPanel() {
 function RegisterStat({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-sm border border-white/10 bg-white/10 p-4 backdrop-blur-md">
-      <p className="text-[11px] uppercase tracking-[0.22em] text-blue-100/70">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-100/70">{label}</p>
       <p className="mt-2 text-lg font-semibold">{value}</p>
     </div>
   )

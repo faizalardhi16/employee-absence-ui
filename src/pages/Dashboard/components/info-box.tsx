@@ -4,7 +4,7 @@ import { CheckCircle2Icon } from "lucide-react"
 export function InfoBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-border/70 bg-muted/40 px-3 py-2.5">
-      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 truncate text-sm font-medium">{value}</p>
